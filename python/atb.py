@@ -171,6 +171,10 @@ def main():
         ("Молочні продукти", "https://www.atbmarket.com/catalog/molocni-produkti-ta-ajca"),
         ("М'ясо", "https://www.atbmarket.com/catalog/maso"),
         ("Сири", "https://www.atbmarket.com/catalog/siri"),
+        ("Риба і Морепродукти", "https://www.atbmarket.com/catalog/353-riba-i-moreprodukti"),
+        ("Хлібобулочні вироби", "https://www.atbmarket.com/catalog/325-khlibobulochni-virobi"),
+        ("Заморожені продукти", "https://www.atbmarket.com/catalog/322-zamorozheni-produkti"),
+        ("Ковбаса і м'ясні делікатеси", "https://www.atbmarket.com/catalog/360-kovbasa-i-m-yasni-delikatesi"),
     ]
     
     # Підключення до БД
