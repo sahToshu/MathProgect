@@ -23,80 +23,80 @@ MANIFEST
 /python/config.py
 
 # Database
-*.db
-*.sqlite
+/serv/*.db
+/serv/*.sqlite
 
 # Environment
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+/serv/.env
+/serv/.venv
+/serv/env/
+/serv/venv/
+/serv/ENV/
+/serv/env.bak/
+/serv/venv.bak/
 
 # IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-tsconfig.base.json
+/serv/.vscode/
+/serv/.idea/
+/serv/*.swp
+/serv/*.swo
+/serv/tsconfig.base.json
 # Logs
-*.log
+/serv/*.log
 
 # compiled output
-/dist
-/node_modules
-/build
+/serv/dist
+/serv/node_modules
+/serv/build
 
 # Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+/serv/logs
+/serv/*.log
+/serv/npm-debug.log*
+/serv/pnpm-debug.log*
+/serv/yarn-debug.log*
+/serv/yarn-error.log*
+/serv/lerna-debug.log*
 
 # OS
-.DS_Store
+/serv/.DS_Store
 
 # Tests
-/coverage
-/.nyc_output
+/serv/coverage
+/serv/.nyc_output
 
 # IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+/serv/.idea
+/serv/.project
+/serv/.classpath
+/serv/.c9/
+/serv/*.launch
+/serv/.settings/
+/serv/*.sublime-workspace
 
 # IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+/serv/.vscode/*
+/serv/!.vscode/settings.json
+/serv/!.vscode/tasks.json
+/serv/!.vscode/launch.json
+/serv/!.vscode/extensions.json
 
 # dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+/serv/.env
+/serv/.env.development.local
+/serv/.env.test.local
+/serv/.env.production.local
+/serv/.env.local
 
 # temp directory
-.temp
-.tmp
+/serv/.temp
+/serv/.tmp
 
 # Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+/servpids
+/serv/*.pid
+/serv/*.seed
+/serv/*.pid.lock
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+/serv/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
