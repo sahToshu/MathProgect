@@ -9,6 +9,7 @@ import time
 import random
 import csv
 import os
+import re
 from config import host, user, password, db_name, port
 
 def connect_to_database():
@@ -28,40 +29,82 @@ def connect_to_database():
         return None
 
 def save_to_database(conn, products):
-    """Збереження товарів у базу даних"""
+    """Зберігає список продуктів у базу даних"""
     if not conn:
+        print("Відсутнє з'єднання з базою даних.")
         return
-    
+
     cursor = conn.cursor()
-    
+
     try:
+        # Створення таблиці, якщо вона не існує
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS silpo_products (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                category VARCHAR(255),
-                name VARCHAR(500),
-                price VARCHAR(100),
+                category VARCHAR(255) NOT NULL,
+                name VARCHAR(500) NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                price_bot DECIMAL(10,2),
+                discount VARCHAR(50),
+                unit VARCHAR(10),
+                quantity DECIMAL(10,3),
                 image_url VARCHAR(512),
-                scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                is_available BOOLEAN DEFAULT TRUE,
+                scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_category (category),
+                INDEX idx_price (price),
+                INDEX idx_availability (is_available)
             ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
         """)
-        
+
+        insert_query = """
+            INSERT INTO silpo_products 
+            (category, name, price, price_bot, discount, unit, quantity, image_url, is_available)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        inserted_count = 0
+
         for product in products:
-            cursor.execute("""
-                INSERT INTO silpo_products (category, name, price, image_url)
-                VALUES (%s, %s, %s, %s)
-            """, (
-                product['category'],
-                product['name'],
-                product['price'],
-                product['image_url']
-            ))
-        
+            try:
+                # Конвертація значень до правильних типів з перевіркою
+                price = float(product.get('price', '0').replace(' ', '').replace(',', '.'))
+                price_bot = product.get('price_bot')
+                price_bot = float(price_bot.replace(' ', '').replace(',', '.')) if price_bot else None
+
+                quantity = product.get('quantity')
+                quantity = float(quantity) if quantity is not None else None
+
+                values = (
+                    product.get('category'),
+                    product.get('name'),
+                    price,
+                    price_bot,
+                    product.get('discount'),
+                    product.get('unit'),
+                    quantity,
+                    product.get('image_url'),
+                    product.get('is_available', True)
+                )
+
+                cursor.execute(insert_query, values)
+                inserted_count += 1
+
+            except Exception as inner_e:
+                print(f"Не вдалося зберегти товар: {product.get('name')}")
+                print(f"Помилка: {inner_e}")
+                continue
+
         conn.commit()
-        print(f"Збережено {len(products)} товарів у БД")
+        print(f"Успішно збережено {inserted_count} товарів у базу даних.")
+
     except Exception as e:
         conn.rollback()
-        print(f"Помилка запису в БД: {e}")
+        print("Помилка під час збереження до БД:")
+        print(e)
+        import traceback
+        traceback.print_exc()
+
     finally:
         cursor.close()
 
@@ -77,7 +120,7 @@ def human_like_delay(min=1, max=3):
     time.sleep(random.uniform(min, max))
 
 def extract_products(driver):
-    """Витяг даних про продукти"""
+    """Витяг даних про продукти з урахуванням перевірки ваги"""
     try:
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.products-list"))
@@ -100,22 +143,58 @@ def extract_products(driver):
                 
                 name = product_card.find('div', class_='product-card__title').get_text(strip=True)
                 price = product_card.find('div', class_='product-card-price__displayPrice').get_text(strip=True)
-                weight = product_card.find('div', class_='ft-typo-14-semibold').get_text(strip=True)
-                full_price = f"{price}/{weight}"
+                price = price.replace(' ', '')[:-3]  # Видаляємо пробіли та "₴"
+                
+                # Обробка опціональних полів
+                price_bot_elem = product_card.find('div', class_='product-card-price__displayOldPrice')
+                price_bot = price_bot_elem.get_text(strip=True).replace(' ', '')[:-3] if price_bot_elem else None
+                
+                discount_elem = product_card.find('div', class_='product-card-price__sale')
+                discount = discount_elem.get_text(strip=True) if discount_elem else None
+                
+                # Удосконалена обробка ваги
+                weight_elem = product_card.find('div', class_='ft-typo-14-semibold')
+                unit, quantity = None, None
+                
+                if weight_elem:
+                    weight_text = weight_elem.get_text(strip=True)
+                    # Регулярний вираз для знаходження ваги (число + одиниця)
+                    weight_match = re.match(r'^(\d+[,.]?\d*)\s*([а-яґєіїa-z]*)$', weight_text, re.IGNORECASE)
+                    if weight_match:
+                        quantity = float(weight_match.group(1).replace(',', '.'))
+                        unit = weight_match.group(2).lower() if weight_match.group(2) else None
+                
+                # Если unit = "шт", ищем вес в названии
+                if unit == 'шт' or (unit is None and weight_elem is None):
+                    # Ищем в названии паттерны типа "100г", "0.5кг" и т.д.
+                    name_weight_match = re.search(r'(\d+[,.]?\d*)\s*(г|кг|мл|л|шт)', name, re.IGNORECASE)
+                    if name_weight_match:
+                        quantity = float(name_weight_match.group(1).replace(',', '.'))
+                        unit = name_weight_match.group(2).lower()
+                    else:
+                        # Если не нашли в названии, оставляем unit = "шт", quantity = NULL
+                        unit = 'шт'
+                        quantity = None
                 
                 img_tag = product_card.find('img', class_='product-card__product-img')
                 image_url = img_tag['src'] if img_tag and 'src' in img_tag.attrs else None
                 if image_url and not image_url.startswith('http'):
                     image_url = f"https://silpo.ua{image_url}"
                 
-                is_available = product_card.find('button', class_='product-card-quantity__add') is not None
+                is_available = product_card.find('div', class_='cart-soldout')
+                if is_available == "Товар закінчився":
+                    continue
                 
-                if name and full_price and is_available:
-                    extracted.append({
-                        'name': name,
-                        'price': full_price,
-                        'image_url': image_url
-                    })
+                extracted.append({
+                    'name': name,
+                    'price': price,
+                    'price_bot': price_bot,
+                    'discount': discount,
+                    'unit': unit,
+                    'quantity': quantity,
+                    'image_url': image_url
+                })
+                
             except Exception as e:
                 print(f"Помилка парсингу товару: {e}")
                 continue
@@ -127,7 +206,7 @@ def extract_products(driver):
         print(f"Помилка витягування товарів: {e}")
         return []
 
-def process_category(driver, base_url, category_name, min_products=47, max_pages=70):
+def process_category(driver, base_url, category_name, min_products=47, max_pages=100):
     """Обробка категорії"""
     all_products = []
     current_page = 1

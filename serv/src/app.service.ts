@@ -2,215 +2,159 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { atb_products, silpo_products } from '@prisma/client';
 
-/**
- * Типы единиц измерения цены:
- * - per100g - цена за 100 грамм
- * - perKg - цена за килограмм
- * - perPiece - цена за штуку
- * - perCustom - пользовательская единица измерения
- */
-export type PriceUnitType = 'per100g' | 'perKg' | 'perPiece' | 'perCustom';
-
-/**
- * Интерфейс данных о цене продукта:
- * - originalPrice - оригинальная строка цены из магазина
- * - numericPrice - числовое значение цены
- * - pricePer100g - цена за 100 грамм (если применимо)
- * - unitType - тип единицы измерения
- */
-export interface PriceData {
-  originalPrice: string;
-  numericPrice: number;
-  pricePer100g?: number;
-  unitType: PriceUnitType | null;
+export interface IPro extends atb_products {
+  priceforx: number;
+  priceforxbot: number;
+  x: number;
+  store: 'ATB';
 }
 
-/**
- * Интерфейс продукта ATB с расширенными данными о цене
- */
-export interface ProductWithPriceData extends atb_products {
-  priceData: PriceData;
+export interface ISilpoPro extends silpo_products {
+  priceforx: number;
+  priceforxbot: number;
+  x: number;
+  store: 'Silpo';
 }
 
-/**
- * Интерфейс продукта Silpo с расширенными данными о цене
- */
-export interface SilpoProductWithPriceData extends silpo_products {
-  priceData: PriceData;
-}
+type CombinedProduct = (IPro | ISilpoPro) & { pricePerUnit: number };
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Парсит данные о цене из строки цены и названия продукта
-   * @param priceString - строка с ценой (например: "89.99 грн/кг")
-   * @param productName - название продукта (например: "Молоко 1л")
-   * @returns Объект с разобранными данными о цене
-   */
-  public parseProductPriceData(
-    priceString: string,
-    productName: string
-  ): PriceData {
-    // Извлекаем числовое значение цены
-    const numericPrice = parseFloat(
-      priceString.replace(/[^\d.,]/g, '').replace(',', '.')
+  // ATB functions
+  private filterATBByName(products: atb_products[], name: string = ''): atb_products[] {
+    return products.filter(product => 
+      product.name.toLowerCase().includes(name.toLowerCase())
     );
-  
-    const result: PriceData = {
-      originalPrice: priceString,
-      numericPrice,
-      unitType: 'perPiece' // По умолчанию считаем штучным товаром
-    };
-  
-    // Ищем любой вес в формате: /<число>г, /<число>кг и т.д.
-    const weightMatch = priceString.match(/\/(\d+[,.]?\d*)\s*(г|грам|грамм|g|кг|kg|мл|ml|л|l)\b/i);
-  
-    if (weightMatch) {
-      const weightValue = parseFloat(weightMatch[1].replace(',', '.'));
-      const weightUnit = weightMatch[2].toLowerCase();
-  
-      // Конвертируем в граммы
-      let grams = weightValue;
-      if (weightUnit.includes('кг') || weightUnit.includes('kg')) grams = weightValue * 1000;
-      if (weightUnit.includes('л') || weightUnit.includes('l')) grams = weightValue * 1000;
-  
-      if (grams > 0) {
-        // Рассчитываем цену за 100г
-        result.pricePer100g = (numericPrice * 100) / grams;
-        result.unitType = grams === 100 ? 'per100g' : 
-                         grams === 1000 ? 'perKg' : 'perCustom';
-        return result;
-      }
-    }
-  
-    // Если вес не указан в цене, проверяем название
-    const nameWeightMatch = productName.match(/(\d+[,.]?\d*)\s*(г|грам|грамм|g|кг|kg|мл|ml|л|l)\b/i);
-    if (nameWeightMatch) {
-      const weightValue = parseFloat(nameWeightMatch[1].replace(',', '.'));
-      const weightUnit = nameWeightMatch[2].toLowerCase();
-  
-      let grams = weightValue;
-      if (weightUnit.includes('кг') || weightUnit.includes('kg')) grams = weightValue * 1000;
-  
-      if (grams > 0) {
-        result.pricePer100g = (numericPrice * 100) / grams;
-        result.unitType = grams === 100 ? 'per100g' : 
-                         grams === 1000 ? 'perKg' : 'perCustom';
-        return result;
-      }
-    }
-  
-    // Если явного веса нет, проверяем стандартные форматы
-    if (priceString.includes('/100г')) {
-      result.pricePer100g = numericPrice;
-      result.unitType = 'per100g';
-    } else if (priceString.includes('/кг')) {
-      result.pricePer100g = numericPrice / 10;
-      result.unitType = 'perKg';
-    } else {
-      // Если не весовой товар
-      result.pricePer100g = numericPrice;
-      result.unitType = 'perPiece';
-    }
-  
-    return result;
   }
 
-  /**
-   * Получает продукты ATB, отсортированные по цене
-   * @param direction - направление сортировки (по возрастанию или убыванию)
-   * @returns Массив продуктов с данными о цене
-   */
-  async getSortedATBProducts(direction: 'asc' | 'desc' = 'asc'): Promise<ProductWithPriceData[]> {
-    // Получаем все продукты ATB с ненулевыми ценой и названием
-    const products = await this.prisma.atb_products.findMany({
-      where: {
-        price: { not: null },
-        name: { not: null }
-      }
-    });
+  private filterATBByCategory(products: atb_products[], category: string = ''): atb_products[] {
+    return products.filter(product => 
+      product.category && product.category.toLowerCase() === category.toLowerCase()
+    );
+  }
 
-    // Добавляем разобранные данные о цене и сортируем
-    return products
-      .map(product => ({
+  private async getBaseATBProducts(): Promise<atb_products[]> {
+    return this.prisma.atb_products.findMany();
+  }
+
+  async getFilteredATBProducts(name?: string, category?: string): Promise<atb_products[]> {
+    const products = await this.getBaseATBProducts();
+    const filteredByName = this.filterATBByName(products, name || '');
+    return this.filterATBByCategory(filteredByName, category || '');
+  }
+
+  // Silpo functions
+  private filterSilpoByName(products: silpo_products[], name: string = ''): silpo_products[] {
+    return products.filter(product => 
+      product.name.toLowerCase().includes(name.toLowerCase())
+    );
+  }
+
+  private filterSilpoByCategory(products: silpo_products[], category: string = ''): silpo_products[] {
+    return products.filter(product => 
+      product.category && product.category.toLowerCase() === category.toLowerCase()
+    );
+  }
+
+  private async getBaseSilpoProducts(): Promise<silpo_products[]> {
+    return this.prisma.silpo_products.findMany();
+  }
+
+  async getFilteredSilpoProducts(name?: string, category?: string): Promise<silpo_products[]> {
+    const products = await this.getBaseSilpoProducts();
+    const filteredByName = this.filterSilpoByName(products, name || '');
+    return this.filterSilpoByCategory(filteredByName, category || '');
+  }
+
+  // Common functions
+  async calculateATBPriceForGrams(products: atb_products[], grams: number): Promise<IPro[]> {
+    return products.map(product => {
+      let quantity = 1000
+      if (product.unit == "г") {
+        quantity = Number(product.quantity);
+      }else if (product.unit == "кг" && product.quantity) {
+        quantity = Number(product.quantity) * 1000; 
+      }
+      const price = Number(product.price);
+      const price_bot = product.price_bot ? Number(product.price_bot) : 0;
+
+      return {
         ...product,
-        priceData: this.parseProductPriceData(product.price!, product.name!)
-      }))
-      .sort((a, b) => {
-        // Для сортировки используем цену за 100г или общую цену
-        const aPrice = a.priceData.pricePer100g ?? a.priceData.numericPrice;
-        const bPrice = b.priceData.pricePer100g ?? b.priceData.numericPrice;
-        return direction === 'asc' ? aPrice - bPrice : bPrice - aPrice;
-      });
+        priceforx: (price / quantity) * grams,
+        priceforxbot: price_bot ? (price_bot / quantity) * grams : 0,
+        x: grams,
+        store: 'ATB'
+      };
+    });
   }
 
-  /**
-   * Получает продукты Silpo, отсортированные по цене
-   * @param direction - направление сортировки (по возрастанию или убыванию)
-   * @returns Массив продуктов с данными о цене
-   */
-  async getSortedSilpoProducts(direction: 'asc' | 'desc' = 'asc'): Promise<SilpoProductWithPriceData[]> {
-    // Аналогично для продуктов Silpo
-    const products = await this.prisma.silpo_products.findMany({
-      where: {
-        price: { not: null },
-        name: { not: null }
-      }
-    });
+  async calculateSilpoPriceForGrams(products: silpo_products[], grams: number): Promise<ISilpoPro[]> {
+    return products.map(product => {
+      let quantity = product.quantity != null ? product.quantity.toNumber() : 1000;
 
-    return products
-      .map(product => ({
+      if (product.unit === "кг" || product.unit === "л") {
+        quantity = product.quantity ? product.quantity.toNumber() * 1000 : 1000;
+      } else if (product.unit === "шт") {
+        quantity = 1;
+      } else if (product.unit === "г") {
+        quantity = product.quantity != null ? product.quantity.toNumber() : 1000;
+      }
+
+      const price = Number(product.price);
+      const price_bot = product.price_bot ? Number(product.price_bot) : 0;
+
+      return {
         ...product,
-        priceData: this.parseProductPriceData(product.price!, product.name!)
+        priceforx: (price / quantity) * grams,
+        priceforxbot: price_bot ? (price_bot / quantity) * grams : 0,
+        x: grams,
+        store: 'Silpo'
+      };
+    });
+  }
+
+  sortByPrice<T extends { priceforx: number }>(products: T[], sortOrder: 'asc' | 'desc' = 'asc'): T[] {
+    return [...products].sort((a, b) => {
+      return sortOrder === 'asc' 
+        ? a.priceforx - b.priceforx 
+        : b.priceforx - a.priceforx;
+    });
+  }
+
+  // Comparison function
+  async compareProducts(
+    name: string,
+    grams: number = 100,
+    category?: string,
+    sortOrder: 'asc' | 'desc' = 'asc'
+  ): Promise<CombinedProduct[]> {
+    // Get products from both stores
+    const atbProducts = await this.getFilteredATBProducts(name, category);
+    const silpoProducts = await this.getFilteredSilpoProducts(name, category);
+
+    // Calculate prices
+    const atbWithPrices = await this.calculateATBPriceForGrams(atbProducts, grams);
+    const silpoWithPrices = await this.calculateSilpoPriceForGrams(silpoProducts, grams);
+
+    // Combine and add price per unit for better comparison
+    const combined: CombinedProduct[] = [
+      ...atbWithPrices.map(p => ({ 
+        ...p, 
+        pricePerUnit: p.priceforx / grams 
+      })),
+      ...silpoWithPrices.map(p => ({ 
+        ...p, 
+        pricePerUnit: p.priceforx / grams 
       }))
-      .sort((a, b) => {
-        const aPrice = a.priceData.pricePer100g ?? a.priceData.numericPrice;
-        const bPrice = b.priceData.pricePer100g ?? b.priceData.numericPrice;
-        return direction === 'asc' ? aPrice - bPrice : bPrice - aPrice;
-      });
-  }
+    ];
 
-  /**
-   * Получает все продукты (ATB и Silpo), отсортированные по цене
-   * @param direction - направление сортировки
-   * @returns Объект с двумя массивами: ATB и Silpo продукты
-   */
-  async getAllSortedProducts(direction: 'asc' | 'desc' = 'asc') {
-    // Параллельно получаем продукты обоих магазинов
-    const [atb, silpo] = await Promise.all([
-      this.getSortedATBProducts(direction),
-      this.getSortedSilpoProducts(direction)
-    ]);
-    
-    return { atb, silpo };
-  }
-
-  /**
-   * Ищет продукты ATB по названию и/или категории
-   * @param name - часть названия для поиска
-   * @param category - часть категории для поиска
-   * @returns Массив найденных продуктов
-   /**/
-
-   async findATBProducts(name?: string, category?: string): Promise<atb_products[]> {
-    return this.prisma.atb_products.findMany({
-      where: {
-        name: name ? { contains: name.toLowerCase() } : undefined,
-        category: category ? { contains: category.toLowerCase() } : undefined
-      }
+    // Sort by price per unit
+    return combined.sort((a, b) => {
+      return sortOrder === 'asc' 
+        ? a.pricePerUnit - b.pricePerUnit 
+        : b.pricePerUnit - a.pricePerUnit;
     });
   }
-  
-  async findSilpoProducts(name?: string, category?: string): Promise<silpo_products[]> {
-    return this.prisma.silpo_products.findMany({
-      where: {
-        name: name ? { contains: name.toLowerCase() } : undefined,
-        category: category ? { contains: category.toLowerCase() } : undefined
-      }
-    });
-  }
-  
-
 }

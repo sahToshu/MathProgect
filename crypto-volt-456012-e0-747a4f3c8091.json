@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "crypto-volt-456012-e0",
+  "private_key_id": "747a4f3c8091d53a9d852eaf552fb5d74e633c64",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDTDasIPqOSLbo1\neGdZSkBon8dnalw2/ogeENWuYgbzVt1levw1Y97Gbezd1A/VGJ2DBWNrYj7vJOqw\n+LI8+8bOH2i8H3s5jKRUDT+kvcyDa+S6ySiFeTKEArGXNLla/35MuJ6f5MLnhAWq\nuMhdYICc5ZuejezjB0xj5xbZuuuHNOWPj0YGiEdCLF/fiZOv7y6smVmwRtt3jjCx\nehhzqo3dY8UvilDrUv3aazYj1NANglkHLb5zH5nL/xlg2rJXnM56/LvFF4UZnEs7\nVexnthKGFm/mUtQ0EI59aTicO7hFdUfpF3dlMsDPUCvfIdwcmzEK3xD8cku9WXok\ncJpj9O5NAgMBAAECggEADgRD3h3O3jf0PHXdI0R3p5so8pjRPAPGhXynvFedT47u\n0D0NP/x8gKAvUYIydPwYBeoXMrwJIvfIMG2r5Lnx96GFYq0SkX1iMoTYu7exO+8v\n9ynB669jZ/oH0lt5je4W9MB0JHlcamTNvYtdHzp4ADONlMenOmKzM5VW4qnz13xQ\ndjYvQJhqui+lzqOGxC8iTXAfLShcW2D8cXHhuEhwg256aiBZ2VLfYrZ7mGn+TnEP\nwntd6+RQ9p+qdBlibENOWDQ7gioTrziwQ17bOgZu6hYY+seOQeZkzVHal2msVJLn\nL6eMc/JaXOYjzDDuaVsO34FD/ImHwTBUFXM7XzktsQKBgQDyDm0uDKcjIFbeCZDZ\nkoqei/rvnB/+HRqqO2UWjTPg1IyZTki9yEpz4VH+//LP3hdp9JywRRly+lcUk15d\ndNTwwZYlEBUz02VCIzkvShTzmZIphZnn3tF/R1Tpx5aU49gsxfeCWTT5gprqj97J\nDIYuK51/xT/mtMYDJNnGfs4TtQKBgQDfNguCmCzCsjUGqBqzA9fBpZukrFaI6GKn\nwW/IC1US+LmniTii1KWgUYICPZSdQl1OUuAU1xu3bGzQrOkkLUnBsotHIlCkEhxc\n7xwlFNOtaAf9vw/4RoD7K+ycoSoyZPtfvlue2eQOsDnRCdC6htW9hf5XFjqkKRFC\nBHtXYfU/OQKBgC3CBmevIqVkRqegvU40AppoMd6779xU2iaWJcz2knkNFSsh/mRK\nCbEQRjTjY55iCKESCdDUrzPqGS4dkbgvDtYYcm69NJTggILZL8U9xuop/NR2mhqY\nJ5hc/rNW9KNe0w3buqdcf8QvKWPwIJh3EqKFwjdWLXdKcyhC/hwk+oYFAoGALRqj\nqskLSnBuTKENfB0LrSLE17rHZbTnspRg/SBlGYdPJK6S1jx4F3RA/CjrbfeqGRig\nFTX+cMslFenK1recDtsAT+h8ORs7xf+/RTL3LzQ1YS4JkRbWG2sdzey3NSW4sfkq\nVGgdMGal2DrOhdKXQEviQEDKqr9tsFRthBPUVekCgYEAhMLnL4J9m7lYGfxJEEbF\nxYEnSpcn7zh/R8Tk2HkjnoTw5XZacfyyVjyTTzEGyECXxbXEFW0GTMf9FiLbi5zt\nXEX7Oiy98nP7655bTICEz7R1GcDdjYqungSpOpQqjrygxmHeKxZc8YEtGR1REehs\nwd/WnqCaKzGJih0lLyKin5g=\n-----END PRIVATE KEY-----\n",
+  "client_email": "toshu-366@crypto-volt-456012-e0.iam.gserviceaccount.com",
+  "client_id": "115585306785008693829",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/toshu-366%40crypto-volt-456012-e0.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
